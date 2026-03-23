@@ -1,0 +1,11 @@
+# @package _global_
+
+scheduler:
+  command: |-
+    uv run tsubame-train \
+      --random.seed={seed} \
+      --experiment.output-dir={output_dir} \
+      --experiment.project-name={project_name} \
+      --experiment.experiment-name={experiment_name} \
+  params:
+    seed: 0
