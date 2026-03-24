@@ -7,9 +7,8 @@ import functools
 import os
 import socket
 import types
-from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import torch
 from loguru._defaults import LOGURU_FORMAT
@@ -148,6 +147,7 @@ def _get_ipv4_address() -> str:
     return ipv4_address
 
 
+@functools.cache
 def get_master_address(master_rank: int = 0) -> str:
     ipv4_address = _get_ipv4_address()
     global_comm = _get_global_comm()
@@ -155,10 +155,16 @@ def get_master_address(master_rank: int = 0) -> str:
     return master_address
 
 
-def get_master_port(master_rank: int = 0) -> int:
+def _get_free_port() -> int:
     with contextlib.closing(socket.socket()) as sock:
         sock.bind(("", 0))
         _, free_port = sock.getsockname()
+    return free_port
+
+
+@functools.cache
+def get_master_port(master_rank: int = 0) -> int:
+    free_port = _get_free_port()
     global_comm = _get_global_comm()
     master_port = global_comm.bcast(free_port, master_rank)
     return master_port
@@ -215,9 +221,7 @@ def is_master_rank(master_rank: int = 0) -> bool:
     return global_rank == master_rank
 
 
-def get_format(
-    base_format: str = LOGURU_FORMAT,
-) -> Callable[[dict[str, Any]], str]:
+def get_format(base_format: str = LOGURU_FORMAT) -> str:
     prefix, suffix = base_format.rsplit(" | ", 1)
     global_size = get_global_size()
     global_rank = get_global_rank()
